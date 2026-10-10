@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TubeMod — Importar configuración</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="icon" href="../icons/icon_128.png" />
+    <style>
+      body { box-sizing: border-box; width: min(34rem, 100%); margin: 3rem auto; }
+      input { max-width: 100%; }
+      input:focus-visible { outline: 2px solid var(--color-tertiary); outline-offset: 4px; }
+      #import-status { line-height: 1.5; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="title-container"><h1>TubeMod</h1></div>
+      <h2>Importar configuración</h2>
+      <p>Selecciona una configuración exportada por TubeMod. Sustituirá los ajustes actuales y recargará la pestaña de YouTube desde la que abriste esta página.</p>
+      <label for="import-settings">Archivo de configuración JSON</label>
+      <p><input id="import-settings" type="file" accept=".json,application/json" aria-describedby="import-status" /></p>
+      <p id="import-status" role="status" aria-live="polite">La importación se realizará al seleccionar el archivo. Mantén esta página y la pestaña de YouTube abiertas.</p>
+    </main>
+    <script src="../scripts/import.js"></script>
+  </body>
+</html>

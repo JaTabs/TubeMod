@@ -1,4 +1,4 @@
-let inputs = document.querySelectorAll("input");
+let inputs = document.querySelectorAll('input[type="checkbox"]');
 let collapsibleElements = document.getElementsByClassName("collapsible");
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -68,18 +68,12 @@ document.getElementById("save-settings").addEventListener("click", () => {
   });
 });
 
-document
-  .getElementById("import-settings")
-  .addEventListener("change", async (e) => {
-    let file = e.target.files.item(0);
-
-    const text = await file.text();
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-      chrome.tabs.sendMessage(tabs[0].id, {
-        action: "importSettings",
-        content: text,
-      });
+document.getElementById("import-settings").addEventListener("click", () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL(`public/import.html?tabId=${tabs[0].id}`),
     });
   });
+});
 
 // [...document.querySelectorAll('#sidebar input')].every(checkbox => checkbox.checked) -> if all the checkboxes are checked, we may want to collapse the sidebar or simply remove the left margin

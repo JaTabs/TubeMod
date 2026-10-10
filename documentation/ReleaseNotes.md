@@ -1,5 +1,16 @@
 # TubeMod - Release Notes
 
+## Sin publicar
+
+Fix:
+
+- La importación se abre en una pestaña de la extensión para que el selector de archivos no dependa del popup que se cierra al perder el foco.
+- La página de importación confirma el guardado o muestra un error de conexión; conserva como destino la pestaña original de YouTube.
+- La importación valida el archivo antes de guardar y espera a que termine el guardado antes de recargar YouTube.
+- Las configuraciones antiguas conservan sus preferencias con las definiciones de la versión instalada.
+- La exportación elimina el enlace de descarga correctamente y libera su URL temporal.
+- Cancelar la selección de un archivo no provoca errores; se puede seleccionar el mismo archivo de nuevo.
+
 # 1.15.0
 
 Add:

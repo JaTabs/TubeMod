@@ -30,20 +30,54 @@ function saveSettings() {
         });
         a.href = URL.createObjectURL(file);
         a.download = "tubeModSettings.json";
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
       }
     },
   );
-  document.body.removeChild(a);
 }
 
-function importSettings(settings) {
+function importSettings(settings, sendResponse) {
+  let elements;
+  try {
+    const imported = JSON.parse(settings);
+    const importedElements = typeof imported?.tubemod_elements === "string"
+      ? JSON.parse(imported.tubemod_elements)
+      : imported?.tubemod_elements;
+
+    if (!Array.isArray(importedElements) || !importedElements.every(
+      (element) => element && typeof element.id === "string" &&
+        typeof element.checked === "boolean",
+    ) || !importedElements.some(
+      (element) => STORAGE.tubemod_elements.some((el) => el.id === element.id),
+    )) {
+      throw new Error("Invalid TubeMod settings format.");
+    }
+
+    elements = STORAGE.tubemod_elements.map((element) => {
+      const importedElement = importedElements.find((el) => el.id === element.id);
+      return importedElement
+        ? { ...element, checked: importedElement.checked }
+        : { ...element };
+    });
+  } catch (error) {
+    sendResponse({ error: "No se pudo importar la configuración. Elige un archivo JSON válido de TubeMod." });
+    return;
+  }
+
   chrome.storage.local.set({
-    tubemod_elements: JSON.parse(settings)["tubemod_elements"],
-    tubemod_version: JSON.parse(settings)["tubemod_version"],
+    tubemod_elements: JSON.stringify(elements),
+    tubemod_version: STORAGE.tubemod_version,
+  }, () => {
+    if (chrome.runtime.lastError) {
+      sendResponse({ error: `No se pudo guardar la configuración: ${chrome.runtime.lastError.message}` });
+      return;
+    }
+    sendResponse({ success: true });
+    location.reload();
   });
-  location.reload();
-  alert("TubeMod settings uploaded and applied!");
 }
 
 function getCurrentPageType() {
@@ -1312,13 +1346,14 @@ class TubeMod {
     window.addEventListener("load", this.handleLoad.bind(this));
   }
 
-  handleMessage(request) {
+  handleMessage(request, sender, sendResponse) {
     if (request.action === "clearLocalStorage") {
       this.clearLocalStorage();
     } else if (request.action === "saveSettings") {
       saveSettings();
     } else if (request.action === "importSettings") {
-      importSettings(request.content);
+      importSettings(request.content, sendResponse);
+      return true;
     } else {
       this.elementManager.handleAction(request.action);
     }
