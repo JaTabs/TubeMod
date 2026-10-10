@@ -40,7 +40,7 @@ After installing the extension:
 1. Clone the repository
 
 ```
-git clone https://github.com/Pedro-Gregorio/TubeMod.git
+git clone https://github.com/JaTabs/TubeMod.git
 cd TubeMod
 ```
 
