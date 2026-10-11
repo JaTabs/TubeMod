@@ -2,14 +2,61 @@
 
 ## Cambios de esta versión
 
-Esta versión conserva el proyecto original de [Pedro-Gregorio/TubeMod](https://github.com/Pedro-Gregorio/TubeMod) y corrige la importación y exportación de configuraciones:
+Este fork conserva las opciones del proyecto original de [Pedro-Gregorio/TubeMod](https://github.com/Pedro-Gregorio/TubeMod), optimiza el filtrado y corrige la importación y exportación de configuraciones:
 
 - La importación se abre en una pestaña propia, para no depender del popup que puede cerrarse al abrir el selector de archivos.
 - Valida el JSON, conserva las preferencias de archivos antiguos y confirma el guardado antes de recargar YouTube.
 - Muestra errores de lectura, validación, conexión y almacenamiento.
 - Corrige la limpieza del enlace de exportación.
 
-Los cambios se comparten entre Brave, Chromium y Firefox. Las versiones de las tiendas enlazadas abajo pertenecen al proyecto original; para usar esta reparación, carga esta copia como extensión de desarrollo.
+Los cambios se comparten entre Brave, Chromium y Firefox. Las versiones de las tiendas enlazadas abajo pertenecen al proyecto original; para usar este fork, carga esta copia como extensión de desarrollo.
+
+### Filtrado
+
+- 70 de las 100 opciones aplican sus estilos mediante CSS. El navegador filtra los elementos nuevos y los cambios de atributos sin volver a recorrer toda la página desde JavaScript.
+- Las opciones desactivadas no ejecutan búsquedas XPath. Desactivarlas retira sus reglas sin anular otros filtros que afecten al mismo elemento.
+- Las reglas de texto, posición e iconos que conservan XPath procesan las ramas modificadas cuando es posible. Las posiciones globales siguen consultando el documento, pero solo ante cambios en sus secciones relevantes.
+- El observador solo se conecta si hay una opción activa que necesita JavaScript. Agrupa los cambios durante 50 ms sin reiniciar el plazo con cada mutación y vacía las referencias a nodos después de procesarlos.
+- La navegación interna de YouTube actualiza el ámbito de las reglas. Si el navegador no admite un selector CSS, esa opción conserva el filtrado XPath.
+
+Ocultar contenido no impide que YouTube lo descargue ni garantiza que libere su memoria. Estas optimizaciones reducen el trabajo de la extensión; no son una medición del ahorro de RAM de la pestaña.
+
+## Diagnóstico de rendimiento
+
+Activa **Diagnóstico de rendimiento (F3)** en el popup de la extensión, o pulsa **F3** en YouTube. Está apagado por defecto. Cerrar el panel desactiva la instrumentación, cancela el muestreo, restaura los métodos originales y libera sus registros. El ajuste se comparte entre las pestañas de YouTube de ese paquete.
+
+El panel muestra tiempos de JavaScript de aplicaciones completas y lotes de cambios, media y percentil 95 de las últimas operaciones, consultas XPath globales o por rama, coincidencias acumuladas y estado del observador. Incluye tres gráficas con valores al pasar el ratón o usar las flechas, una tabla de muestras, registros recientes y exportación JSON. Puedes pausar, reiniciar, cambiar la ventana de 30/60/120 segundos y pulsar **Medir filtros** para provocar una aplicación completa.
+
+### Cómo interpretar los datos
+
+- **Tiempo JS:** ejecución síncrona de los métodos instrumentados, sin contar dos veces las llamadas anidadas. Excluye esperas de almacenamiento, trabajo CSS nativo, layout y pintura. No es el tiempo total hasta que la página termina de verse filtrada.
+- **Ocupación JS:** tiempo medido dividido por el intervalo. No es el uso real de CPU del proceso ni de toda la extensión.
+- **Heap JS:** `performance.memory.usedJSHeapSize`, si el navegador lo expone. Es orientativo y puede incluir otros contextos; no mide RAM de TubeMod ni toda la pestaña. En Firefox normalmente aparece **N/D**.
+- **Tareas largas:** trabajo de más de 50 ms que informa el navegador sobre la página, sin atribuirlo a TubeMod. También aparece N/D si la API no está disponible.
+- **Refresco del panel:** coste JS del último refresco de sus datos y gráficas. El diagnóstico añade trabajo: utiliza el mismo ajuste al comparar ambos paquetes y desactívalo durante el uso normal.
+
+Para observar CPU y memoria de procesos, usa además el gestor de tareas del navegador: Shift+Esc en Chromium/Brave o `about:processes` en Firefox. La extensión no solicita permisos adicionales para acceder a esos datos.
+
+Los registros permanecen en la pestaña: máximo 120 muestras, 100 registros y 300 tiempos. No hay telemetría ni envío a servidores. Los JSON exportados no incluyen URL de la página, títulos ni búsquedas.
+
+## Paquetes original y optimizado
+
+El clon cargado directamente utiliza el motor optimizado. Para generar paquetes independientes para ambos navegadores, con Python 3 y su biblioteca estándar:
+
+```bash
+python3 -I tools/package.py
+```
+
+Se crea una carpeta nueva en `dist/<fecha-hora>/`, con cuatro carpetas cargables y cuatro ZIP:
+
+- `tubemod-chromium-original` y `tubemod-chromium-optimized`.
+- `tubemod-firefox-original` y `tubemod-firefox-optimized`.
+
+En Chromium/Brave carga la carpeta correspondiente con **Load unpacked**; el ZIP sirve para transportarla, no como instalación firmada. En Firefox carga el `manifest.json` de la carpeta correspondiente como complemento temporal. Los paquetes de Firefox no están firmados y el complemento temporal desaparece al cerrar el navegador.
+
+El motor original está congelado en `variants/original/content.js`, procedente de `f9555c4`: anterior a la optimización, con las reparaciones de importación/exportación del fork. Ambos paquetes comparten el mismo panel de diagnóstico y los mismos controles. La compilación original no sustituye `master`: su fuente y el empaquetador también se mantienen en esa rama.
+
+**Activa solo un paquete cada vez.** Las preferencias de las dos instalaciones son independientes: exporta la configuración de una e impórtala en la otra. Para comparar, usa el mismo navegador, pestaña, configuración y recorrido; recarga YouTube tras cambiar de paquete, reinicia la medición y repite varias veces. No concluyas que el coste total de CSS es cero porque el motor optimizado haga pocas consultas o use poco JS.
 
 ## What is it?
 
@@ -86,7 +133,7 @@ Some things to consider:
 - Keep your commit messages clean by starting with `Add`, `Change`, `Fix` or `Remove`, depending on what you're doing.
 - If possible, add evidences, of what you're working on, to the PR message.
 
-## Pruebas de importación y exportación
+## Pruebas
 
 Con Node.js 18 o posterior, sin instalar dependencias:
 
@@ -94,7 +141,16 @@ Con Node.js 18 o posterior, sin instalar dependencias:
 node --test tests/*.test.cjs
 ```
 
-Las pruebas ejecutan los scripts reales con almacenamiento y eventos del navegador simulados. Cubren el ciclo exportar/importar, configuraciones antiguas, archivos inválidos y errores de lectura o guardado.
+Las pruebas de configuraciones ejecutan los scripts reales con almacenamiento y eventos del navegador simulados. Cubren el ciclo exportar/importar, configuraciones antiguas, archivos inválidos y errores de lectura o guardado.
+
+Se añade una única prueba de integración: `tests/filtering.test.cjs`. Ejecuta ambos motores y el diagnóstico en Chromium y Firefox headless, con perfiles temporales y DOM real servido en localhost. Comprueba el filtrado, la restauración, el procesamiento pendiente al cambiar una opción y la activación, medición y desactivación del panel. No instala dependencias ni usa tu perfil personal. Si un navegador no está instalado, se indica que no se ha ejecutado; si no hay ninguno, la prueba se marca como omitida. Para elegir los navegadores que se ejecutan:
+
+```bash
+TUBEMOD_BROWSERS=chromium node --test tests/filtering.test.cjs
+TUBEMOD_BROWSERS=firefox node --test tests/filtering.test.cjs
+```
+
+Estas pruebas usan fixtures y simulan el almacenamiento de la extensión; no sustituyen comprobar los selectores con la versión actual de YouTube ni cargar la extensión completa.
 
 Para comprobarlo en Chromium o Firefox, carga el repositorio como extensión de desarrollo siguiendo los pasos anteriores:
 

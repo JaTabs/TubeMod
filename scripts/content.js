@@ -989,58 +989,186 @@ function waitForElements(selector, callback) {
   }
 }
 
-function debounce(func, wait) {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
-  };
-}
+const CSS_SELECTORS = {
+  "scheduled-videos": "ytd-rich-item-renderer:has(lockup-attachments-view-model), yt-lockup-view-model:has(lockup-attachments-view-model)",
+  "video-previews": "animated-thumbnail-overlay-view-model, div#video-preview",
+  "video-thumbnails": "ytd-thumbnail yt-image, ytd-playlist-thumbnail, yt-thumbnail-view-model",
+  "video-thumbnails-blur": "ytd-thumbnail yt-image, ytd-playlist-thumbnail, yt-thumbnail-view-model",
+  "video-meta-data": "yt-content-metadata-view-model > div:nth-of-type(2)",
+  "lowercase-title": "a[class*='__title']",
+  "logo": "ytd-topbar-logo-renderer",
+  "search-bar": "ytd-searchbox#search, yt-searchbox",
+  "microphone-search": "#voice-search-button",
+  "create": "div#buttons[class*='ytd-masthead'] > ytd-button-renderer",
+  "notifications": "ytd-notification-topbar-button-renderer",
+  "profile-sign-out": "ytd-compact-link-renderer > a[href='/logout']",
+  "sidebar": "tp-yt-app-drawer, ytd-mini-guide-renderer, yt-icon-button#guide-button",
+  "home": "ytd-guide-entry-renderer:has(> a[href='/']), ytd-mini-guide-entry-renderer:has(> a[href='/'])",
+  "shorts": "ytd-guide-entry-renderer:has(> a:is([title='Shorts'], [title='YouTube Shorts'])), ytd-mini-guide-entry-renderer:has(> a:is([title='Shorts'], [title='YouTube Shorts']))",
+  "subscriptions": "ytd-guide-entry-renderer:has(> a[href='/feed/subscriptions']), ytd-mini-guide-entry-renderer:has(> a[href='/feed/subscriptions'])",
+  "you": "ytd-guide-entry-renderer:has(> a[href='/feed/you']), ytd-mini-guide-entry-renderer:has(> a[href='/feed/you'])",
+  "history": "ytd-guide-entry-renderer:has(> a[href='/feed/history'])",
+  "playlists": "ytd-guide-entry-renderer:has(> a[href='/feed/playlists'])",
+  "my-videos": "ytd-guide-entry-renderer:has(> a[href^='https://studio.youtube.com/channel'])",
+  "watch-later": "ytd-guide-entry-renderer:has(> a[href='/playlist?list=WL'])",
+  "courses": "ytd-guide-entry-renderer:has(> a[href='/feed/courses'])",
+  "liked-videos": "ytd-guide-entry-renderer:has(> a[href='/playlist?list=LL'])",
+  "my-clips": "ytd-guide-entry-renderer:has(> a[href='/feed/clips'])",
+  "transfers": "div#section-items > ytd-guide-downloads-entry-renderer, ytd-mini-guide-entry-renderer:has(> a[href='/feed/downloads'])",
+  "subscriptions-panel-new-indicator": "ytd-guide-entry-renderer[line-end-style='dot'] div#newness-dot",
+  "youtube-footer": "ytd-guide-renderer > div#footer",
+  "tabs": ":has(> ytd-feed-filter-chip-bar-renderer[component-style='FEED_FILTER_CHIP_BAR_STYLE_TYPE_DEFAULT'])",
+  "ads": "ytd-rich-item-renderer:has(ytd-ad-slot-renderer), #player-ads, :has(> ytd-banner-promo-renderer), div#masthead-ad",
+  "all-videos": "[page-subtype='home'] > div#primary",
+  "home-posts": "ytd-rich-section-renderer:has(ytd-post-renderer)",
+  "home-shorts": "ytd-rich-section-renderer:has(ytm-shorts-lockup-view-model)",
+  "home-playables": "ytd-rich-section-renderer:has(a[href*='/playables'])",
+  "home-primetime-movies": "ytd-rich-section-renderer:has(a[href='/feed/storefront'])",
+  "viewed-videos": "ytd-rich-item-renderer:has(div#progress[style*='width: 100%'])",
+  "partially-viewed-videos": "ytd-rich-item-renderer:has(ytd-thumbnail:not([is-live-video]) div#progress)",
+  "search-people-also-searched": "div#contents > ytd-horizontal-card-list-renderer",
+  "trending-shorts": "ytd-video-renderer:has(a[href*='/shorts'])",
+  "video-progress-bar-dot": "div[class='ytp-scrubber-container']",
+  "video-title": "div#above-the-fold > div#title",
+  "video-subscribe-button": "yt-button-shape#subscribe-button-shape",
+  "video-subscribed-button": "div#notification-preference-button",
+  "video-join-button": "div#sponsor-button",
+  "video-likes-dislikes": "segmented-like-dislike-button-view-model",
+  "video-share": "div#top-level-buttons-computed > yt-button-view-model",
+  "video-download": "ytd-download-button-renderer",
+  "video-collapsed-buttons": "div#top-row ytd-menu-renderer yt-button-shape#button-shape",
+  "stream-show-chat": "div#show-hide-button",
+  "video-description": "div:has(> div#description-inner)",
+  "video-people-mentioned-description": "yt-video-attributes-section-view-model",
+  "video-chapters-description": "ytd-horizontal-card-list-renderer[class*='ytd-structured-description-content-renderer']",
+  "video-shorts-description": "ytd-structured-description-content-renderer ytd-reel-shelf-renderer",
+  "video-transcription-description": "ytd-video-description-transcript-section-renderer",
+  "video-channel-links-description": "ytd-video-description-infocards-section-renderer",
+  "video-live-chat-replay": "div#teaser-carousel",
+  "video-summary-ai-generated": "div#expandable-metadata",
+  "video-comments": "ytd-comments#comments",
+  "video-comments-avatars": "ytd-comments#comments div#author-thumbnail",
+  "video-comments-replies": "ytd-comments#comments div#replies",
+  "video-ads": "div#player-ads",
+  "video-offer-module": "div#offer-module",
+  "video-tabs": "yt-related-chip-cloud-renderer",
+  "video-suggested-videos": "ytd-item-section-renderer[class*='watch-next']:has(> div#contents)",
+  "video-suggested-videos-new-badge": "yt-lockup-view-model yt-content-metadata-view-model div:has(yt-badge-view-model)",
+  "video-suggested-shorts": "ytd-item-section-renderer[class*='watch-next']:has(> div#contents) ytd-reel-shelf-renderer",
+  "video-suggestion-wall": "div[class='ytp-endscreen-content']",
+  "youtube-progress-bar": "div[class*='ytp-play-progress']",
+  "search-history-thumbnails": "yt-searchbox div[class='ytSuggestionComponentThumbnailContainer']",
+  "playlists-watch-later": "ytd-rich-item-renderer:has(a[href*='list=WL'])",
+  "playlists-liked-videos": "ytd-rich-item-renderer:has(a[href*='list=LL'])",
+};
+
+// Estas reglas necesitan XPath o efectos adicionales, además de CSS.
+const JAVASCRIPT_SCOPES = {
+  "live-videos": "ytd-rich-item-renderer",
+  "download-badge": "p",
+  "youtube-music": "ytd-guide-entry-renderer, ytd-mini-guide-entry-renderer",
+  "you-panel": "ytd-guide-section-renderer",
+  "your-channel": "ytd-guide-section-renderer",
+  "you-show-fewer": "ytd-guide-section-renderer",
+  "you-show-more": "ytd-guide-section-renderer",
+  "subscriptions-panel": "ytd-guide-section-renderer",
+  "explore-panel": "ytd-guide-section-renderer",
+  "youtube-panel": "ytd-guide-section-renderer",
+  "youtube-settings": "ytd-guide-section-renderer",
+  "members-only": "ytd-rich-item-renderer",
+  "home-news": "ytd-rich-section-renderer",
+  "home-trending": "ytd-rich-section-renderer",
+  "playlist-mix": "ytd-rich-item-renderer",
+  "podcast-playlist": "ytd-rich-item-renderer",
+  "subscriptions-most-relevant": "ytd-rich-section-renderer",
+  "subscriptions-shorts": "ytd-rich-section-renderer",
+  "search-shorts": "grid-shelf-view-model",
+  "video-settings-playback-speed": "div[role='menuitem']",
+  "video-settings-sleep-timer": "div[role='menuitem']",
+  "video-subscribers": "div#upload-info",
+  "video-thanks": "div#flexible-item-buttons",
+  "video-save": "div#flexible-item-buttons",
+  "video-clip": "div#flexible-item-buttons",
+  "video-categories-games": "ytd-rich-metadata-row-renderer",
+  "video-views": "div#view-count, yt-formatted-string#info",
+  "channel-trailer": "video, #c4-player",
+  "studio-button": "ytd-masthead",
+  "video-thumbnail": "ytd-watch-next-secondary-results-renderer",
+  "home-posts": "ytd-rich-section-renderer",
+  "video-shorts-description": "ytd-structured-description-content-renderer",
+  "tabs": "ytd-feed-filter-chip-bar-renderer, #frosted-glass",
+  "you": "ytd-guide-collapsible-section-entry-renderer",
+  "my-clips": "ytd-guide-section-renderer",
+  "sidebar": "ytd-page-manager",
+};
+
+const SIDE_EFFECTS = new Set([
+  "channel-trailer", "studio-button", "video-thumbnail", "home-posts",
+  "video-views", "video-shorts-description", "tabs", "you", "my-clips", "sidebar",
+]);
 
 class YouTubeElement {
   constructor(config) {
     Object.assign(this, config);
+    const selector = CSS_SELECTORS[this.id];
+    Object.defineProperty(this, "cssSelector", {
+      value: selector && typeof CSS !== "undefined" &&
+        (!selector.includes(":has(") || CSS.supports("selector(:has(*))")) &&
+        CSS.supports(`selector(:is(${selector}))`) ? selector : null,
+    });
   }
 
-  async toggle(hide) {
+  isRelevant(pageType) {
+    return this.pageTypes.length === 0 || this.pageTypes.includes(pageType);
+  }
+
+  needsJavaScript() {
+    return !this.cssSelector || SIDE_EFFECTS.has(this.id);
+  }
+
+  toggle(hide) {
     this.checked = hide;
-    return this.handleVisibility(hide);
+    if (!hide || this.isRelevant(getCurrentPageType())) {
+      this.applyVisibility(hide);
+    }
   }
 
-  handleVisibility(hide) {
-    const currentPageType = getCurrentPageType();
-    if (
-      this.pageTypes.length > 0 &&
-      !this.pageTypes.includes(currentPageType)
-    ) {
-      return;
+  applyVisibility(hide, root = document) {
+    if (!this.cssSelector && this.property) {
+      const marker = `tubemod-${this.id}`;
+      const matches = new Set();
+      if (hide) {
+        const selector = root === document
+          ? this.selector
+          : this.selector.replace(/(^| \| )\/\//g, "$1descendant-or-self::");
+        const elements = document.evaluate(
+          selector, root, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null,
+        );
+        for (let i = 0; i < elements.snapshotLength; i++) {
+          const element = elements.snapshotItem(i);
+          matches.add(element);
+          if (!element.classList.contains(marker)) element.classList.add(marker);
+        }
+      }
+      const marked = [...root.querySelectorAll(`.${marker}`)];
+      if (root.nodeType === Node.ELEMENT_NODE && root.classList.contains(marker)) {
+        marked.push(root);
+      }
+      marked.forEach((element) => {
+        if (!matches.has(element)) element.classList.remove(marker);
+      });
     }
-    this.applyVisibility(hide);
+    this.applySideEffects(hide);
   }
 
-  applyVisibility(hide) {
-    const elements = document.evaluate(
-      this.selector,
-      document,
-      null,
-      XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
-      null,
-    );
-
-    for (let i = 0; i < elements.snapshotLength; i++) {
-      hide
-        ? (elements.snapshotItem(i).style[this.property] = this.style)
-        : (elements.snapshotItem(i).style[this.property] = "");
-    }
-
-    if (this.id === "channel-trailer" && this.checked) {
-      document.querySelector("video").pause();
+  applySideEffects(hide) {
+    if (this.id === "channel-trailer" && hide) {
+      document.querySelector("video")?.pause();
     }
 
     if (this.id === "home-posts") {
-      const postsElement = document.querySelector(
-        "ytd-rich-section-renderer:has(ytd-post-renderer)",
-      );
+      const postsElement = document.querySelector("ytd-post-renderer")
+        ?.closest("ytd-rich-section-renderer");
       if (postsElement) {
         hide ? (postsElement.disabled = true) : (postsElement.disabled = false);
       }
@@ -1067,9 +1195,7 @@ class YouTubeElement {
     if (this.id === "tabs") {
       const frostedBar = document.getElementById("frosted-glass");
       if (frostedBar) {
-        frostedBar.style.height = hide
-          ? frostedBar.style.setProperty("height", "56px")
-          : frostedBar.style.setProperty("height", "112px");
+        frostedBar.style.setProperty("height", hide ? "56px" : "112px");
       }
     }
 
@@ -1220,13 +1346,12 @@ class YouTubeElement {
         const headerButtons = document.querySelector(
           "ytd-masthead div#buttons",
         );
-        const headerButtonsChildren = Array.from(headerButtons.children);
-        const position = 1;
-
-        headerButtons.insertBefore(
-          youtubeStudioButtonAnchor,
-          headerButtonsChildren[position],
-        );
+        if (headerButtons) {
+          headerButtons.insertBefore(
+            youtubeStudioButtonAnchor,
+            headerButtons.children[1] || null,
+          );
+        }
       } else if (!hide && youtubeStudioButton) {
         youtubeStudioButton.remove();
       }
@@ -1238,12 +1363,23 @@ class ElementManager {
   constructor() {
     this.elements = [];
     this.observer = null;
-    this.initialize();
+    this.pendingRoots = new Map();
+    this.mutationTimer = null;
+    this.styleElement = null;
+    this.pageType = null;
+    this.ready = this.initialize();
   }
 
   async initialize() {
     const storedElements = await this.getStoredElements();
-    this.elements = storedElements.map((el) => new YouTubeElement(el));
+    this.elements = STORAGE.tubemod_elements.map((element) => new YouTubeElement({
+      ...element,
+      checked: storedElements.find((stored) => stored.id === element.id)?.checked === true,
+    }));
+    if (document.documentElement) {
+      this.applyAllElements(getCurrentPageType());
+      this.setupObserver();
+    }
   }
 
   async getStoredElements() {
@@ -1298,35 +1434,125 @@ class ElementManager {
   }
 
   async handleAction(action) {
-    const element = this.elements.find((el) => el.id === action.target);
-    if (element) {
-      await element.toggle(action.hide);
+    await this.ready;
+    const element = this.elements.find((el) => el.id === action?.target);
+    if (element && typeof action.hide === "boolean") {
+      if (this.observer) this.handleMutations(this.observer.takeRecords());
+      this.flushMutations();
+      element.toggle(action.hide);
+      this.updateStyles(getCurrentPageType());
+      this.setupObserver();
       await this.saveElements();
     }
   }
 
+  updateStyles(pageType) {
+    if (!document.documentElement) return;
+    document.documentElement.setAttribute("data-tubemod-page", pageType || "");
+    if (!this.styleElement?.isConnected) {
+      this.styleElement = document.createElement("style");
+      this.styleElement.id = "tubemod-styles";
+      (document.head || document.documentElement).appendChild(this.styleElement);
+    }
+    const rules = this.elements.filter((element) => element.checked && element.property)
+      .map((element) => {
+        const selector = element.cssSelector || `.tubemod-${element.id}`;
+        const scope = element.pageTypes.length
+          ? `:is(${element.pageTypes.map((page) => `html[data-tubemod-page="${page}"]`).join(", ")})`
+          : "html";
+        return `${scope} :is(${selector}) { ${element.property}: ${element.style} !important; }`;
+      }).join("\n");
+    if (this.styleElement.textContent !== rules) this.styleElement.textContent = rules;
+  }
+
+  getJavaScriptElements(pageType = getCurrentPageType()) {
+    return this.elements.filter((element) => element.checked &&
+      element.isRelevant(pageType) && element.needsJavaScript());
+  }
+
   setupObserver() {
     this.observer?.disconnect();
-    this.observer = new MutationObserver(
-      debounce(this.handleMutations.bind(this), 100),
-    );
-    this.observer.observe(document.body, { childList: true, subtree: true });
+    this.observer = null;
+    clearTimeout(this.mutationTimer);
+    this.mutationTimer = null;
+    this.pendingRoots.clear();
+    if (!document.body || !this.getJavaScriptElements().length) return;
+    this.observer = new MutationObserver(this.handleMutations.bind(this));
+    this.observer.observe(document.body, {
+      childList: true, subtree: true, characterData: true, attributes: true,
+      attributeOldValue: true,
+      attributeFilter: ["href", "d", "id", "title", "hidden", "class"],
+    });
   }
 
-  handleMutations() {
-    this.applyAllElements(getCurrentPageType());
+  handleMutations(mutations) {
+    const pageType = getCurrentPageType();
+    if (pageType !== this.pageType) {
+      this.applyAllElements(pageType);
+      this.setupObserver();
+      return;
+    }
+    const elements = this.getJavaScriptElements(pageType);
+    for (const mutation of mutations) {
+      const target = mutation.target.nodeType === Node.ELEMENT_NODE
+        ? mutation.target : mutation.target.parentElement;
+      if (!target || target.closest("#tubemod-styles")) continue;
+      if (mutation.attributeName === "class") {
+        const pageClasses = (value) => (value || "").split(/\s+/)
+          .filter((name) => name && !name.startsWith("tubemod-")).join(" ");
+        if (pageClasses(mutation.oldValue) === pageClasses(target.getAttribute("class"))) continue;
+      }
+      for (const element of elements) {
+        const scope = JAVASCRIPT_SCOPES[element.id];
+        const ancestor = scope ? target.closest(scope) : null;
+        const changedNodes = [target, ...(mutation.addedNodes || []), ...(mutation.removedNodes || [])];
+        if (scope && !ancestor && !changedNodes.some((node) =>
+          node.nodeType === Node.ELEMENT_NODE && (node.matches(scope) || node.querySelector(scope)))) {
+          continue;
+        }
+        // Las posiciones y los ejes ascendentes conservan el contexto global.
+        const global = !element.selector.startsWith("//") || /\/\.\.|ancestor::|parent::/.test(element.selector);
+        const root = global ? document : ancestor || target;
+        const roots = this.pendingRoots.get(element) || new Set();
+        if (![...roots].some((existing) => existing.contains(root))) {
+          for (const existing of roots) {
+            if (root.contains(existing)) roots.delete(existing);
+          }
+          roots.add(root);
+        }
+        this.pendingRoots.set(element, roots);
+      }
+    }
+    if (this.pendingRoots.size && this.mutationTimer === null) {
+      // Un plazo fijo evita posponer el filtrado indefinidamente durante el scroll.
+      this.mutationTimer = setTimeout(this.flushMutations.bind(this), 50);
+    }
   }
 
-  async applyAllElements(pageType) {
-    const relevantElements = this.elements.filter(
-      (el) => el.pageTypes.length === 0 || el.pageTypes.includes(pageType),
-    );
+  flushMutations() {
+    clearTimeout(this.mutationTimer);
+    this.mutationTimer = null;
+    const pending = this.pendingRoots;
+    this.pendingRoots = new Map();
+    for (const [element, roots] of pending) {
+      if (!element.checked || !element.isRelevant(getCurrentPageType())) continue;
+      for (const root of roots) {
+        if (root === document || root.isConnected) element.applyVisibility(true, root);
+      }
+    }
+  }
 
-    await Promise.all(
-      relevantElements.map((element) => {
-        element.checked !== undefined ? element.toggle(element.checked) : null;
-      }),
-    );
+  applyAllElements(pageType) {
+    if (this.pageType !== pageType) {
+      for (const element of this.getJavaScriptElements(this.pageType)) {
+        if (!element.isRelevant(pageType)) element.applyVisibility(false);
+      }
+    }
+    this.pageType = pageType;
+    this.updateStyles(pageType);
+    for (const element of this.getJavaScriptElements(pageType)) {
+      element.applyVisibility(true);
+    }
   }
 }
 
@@ -1343,6 +1569,7 @@ class TubeMod {
       this.handleYouTubeNavigate.bind(this),
     );
     window.addEventListener("popstate", this.handleYouTubeNavigate.bind(this));
+    window.addEventListener("yt-navigate-finish", this.handleYouTubeNavigate.bind(this));
     window.addEventListener("load", this.handleLoad.bind(this));
   }
 
@@ -1371,13 +1598,14 @@ class TubeMod {
     });
   }
 
-  handleLoad() {
+  async handleLoad() {
+    await this.elementManager.ready;
     this.elementManager.applyAllElements(getCurrentPageType());
     this.elementManager.setupObserver();
   }
 
-  handleYouTubeNavigate() {
-    this.elementManager.applyAllElements(getCurrentPageType());
+  async handleYouTubeNavigate() {
+    await this.handleLoad();
   }
 }
 

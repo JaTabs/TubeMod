@@ -19,7 +19,7 @@
   "content_scripts": [
     {
       "matches": ["*://www.youtube.com/*", "*://m.youtube.com/*"],
-      "js": ["./scripts/content.js"],
+      "js": ["./scripts/content.js", "./scripts/diagnostics.js"],
       "run_at": "document_start"
     }
   ]

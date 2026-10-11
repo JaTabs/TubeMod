@@ -1,8 +1,15 @@
-let inputs = document.querySelectorAll('input[type="checkbox"]');
+let inputs = document.querySelectorAll('input[type="checkbox"]:not(#tubemod-debug)');
 let collapsibleElements = document.getElementsByClassName("collapsible");
 
 document.addEventListener("DOMContentLoaded", () => {
-  chrome.storage.local.get(["tubemod_elements"], (result) => {
+  chrome.storage.local.get(["tubemod_elements", "tubemod_debug_enabled"], (result) => {
+    const debugInput = document.getElementById("tubemod-debug");
+    if (chrome.runtime.lastError) {
+      document.getElementById("diagnostics-error").textContent = "No se pudo leer la configuración. Cierra y vuelve a abrir el panel.";
+      return;
+    }
+    debugInput.checked = result.tubemod_debug_enabled === true;
+    debugInput.disabled = false;
     const elements = result.tubemod_elements
       ? JSON.parse(result.tubemod_elements)
       : null;
@@ -76,4 +83,15 @@ document.getElementById("import-settings").addEventListener("click", () => {
   });
 });
 
-// [...document.querySelectorAll('#sidebar input')].every(checkbox => checkbox.checked) -> if all the checkboxes are checked, we may want to collapse the sidebar or simply remove the left margin
+document.getElementById("tubemod-debug").addEventListener("change", (event) => {
+  const enabled = event.target.checked;
+  const status = document.getElementById("diagnostics-error");
+  chrome.storage.local.set({ tubemod_debug_enabled: enabled }, () => {
+    if (chrome.runtime.lastError) {
+      event.target.checked = !enabled;
+      status.textContent = "No se pudo guardar el ajuste de diagnóstico. Vuelve a intentarlo.";
+    } else {
+      status.textContent = enabled ? "Diagnóstico activado en las pestañas de YouTube." : "Diagnóstico desactivado.";
+    }
+  });
+});
