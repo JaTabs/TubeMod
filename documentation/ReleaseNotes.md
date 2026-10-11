@@ -4,23 +4,17 @@
 
 Change:
 
-- 70 de las 100 opciones usan CSS para filtrar también elementos nuevos y tarjetas cuyos atributos cambian, con fallback a XPath si el selector CSS no es compatible.
-- Las opciones desactivadas dejan de ejecutar XPath; los filtros que se solapan ya no se anulan al desactivar uno.
-- Los XPath restantes consultan las ramas modificadas cuando su semántica lo permite. Las reglas posicionales mantienen el contexto global y descartan mutaciones de otras secciones.
-- El observador solo se conecta para reglas activas que necesitan JavaScript; agrupa cambios en plazos de 50 ms y libera las referencias temporales a nodos después de procesarlos.
-- Las reglas se actualizan al navegar internamente por YouTube, sin esperar a cargar otra página completa.
-- Se añade una única prueba de integración del filtrado y el diagnóstico para los dos motores en Chromium y Firefox headless, sin dependencias de npm.
+- Se revierten las optimizaciones y se restaura el motor anterior (`f9555c4`), con XPath, estilos inline y el observador original. Se mantienen F3 y las reparaciones de importación/exportación del fork.
+- El empaquetador genera solo el motor original para Chromium y Firefox; se retiran el motor alternativo y su copia de referencia.
+- Se conserva una única prueba de integración del filtrado original y el diagnóstico en Chromium y Firefox headless, sin dependencias de npm.
 
 Add:
 
 - Diagnóstico opt-in desde el popup o F3: tiempos JS, ocupación JS estimada (no CPU de proceso), heap del navegador cuando esté disponible, XPath y tareas largas de la página.
 - Gráficas de 30/60/120 segundos, tabla de muestras, pausa, reinicio, medición manual y exportación JSON sin URL, títulos ni búsquedas. Registros acotados; sin telemetría.
-- Paquetes independientes original y optimizado para Chromium y Firefox, con el mismo diagnóstico. El motor original queda congelado antes de la optimización; `tools/package.py` genera las cuatro variantes con la biblioteca estándar de Python.
+- Paquetes del motor original con diagnóstico para Chromium y Firefox; `tools/package.py` genera ambos con la biblioteca estándar de Python.
 
 Fix:
-
-- La aplicación inicial espera a cargar las preferencias y usa las definiciones de opciones instaladas.
-- Los efectos del tráiler y el botón de Studio toleran elementos que aún no existen; ocultar las pestañas conserva la altura correcta de la barra.
 
 - La importación se abre en una pestaña de la extensión para que el selector de archivos no dependa del popup que se cierra al perder el foco.
 - La página de importación confirma el guardado o muestra un error de conexión; conserva como destino la pestaña original de YouTube.

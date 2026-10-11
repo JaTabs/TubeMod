@@ -2,7 +2,7 @@ const tubeModDiagnostics = {
   enabled: false,
   desiredEnabled: false,
   paused: false,
-  variant: typeof tubeMod.elementManager.updateStyles === "function" ? "optimized" : "original",
+  variant: "original",
   samples: [],
   logs: [],
   durations: [],
@@ -64,7 +64,7 @@ const tubeModDiagnostics = {
     this.paused = false;
     this.reset();
     const manager = tubeMod.elementManager;
-    for (const method of ["applyAllElements", "handleMutations", "flushMutations", "updateStyles", "setupObserver"]) {
+    for (const method of ["applyAllElements", "handleMutations", "setupObserver"]) {
       this.instrument(manager, method);
     }
     this.instrument(YouTubeElement.prototype, "toggle");
@@ -126,7 +126,7 @@ const tubeModDiagnostics = {
           diagnostics.counters.jsMs += duration;
           diagnostics.counters.operations++;
           if (method === "applyAllElements") diagnostics.lastApplicationMs = duration;
-          if (method === "flushMutations" || (method === "handleMutations" && diagnostics.variant === "original")) diagnostics.lastBatchMs = duration;
+          if (method === "handleMutations") diagnostics.lastBatchMs = duration;
           if (errorName) diagnostics.counters.errors++;
           diagnostics.durations.push(duration);
           if (diagnostics.durations.length > 300) diagnostics.durations.shift();
@@ -241,7 +241,7 @@ const tubeModDiagnostics = {
     const header = add("header", panel);
     const title = add("div", header);
     add("h2", title, "TubeMod / diagnóstico");
-    add("p", title, this.variant === "optimized" ? "Motor optimizado" : "Motor original", { class: "variant" });
+    add("p", title, "Motor original", { class: "variant" });
     add("small", title, "F3 · datos desde la activación");
     const stop = add("button", header, "Cerrar", { "data-action": "stop", title: "Desactivar el diagnóstico y liberar sus registros" });
     stop.addEventListener("click", () => this.setEnabled(false));
@@ -334,7 +334,7 @@ const tubeModDiagnostics = {
     add("summary", notes, "Qué mide y cómo comparar");
     const explanation = add("div", notes, "", { class: "notes" });
     for (const text of [
-      "Activa solo un paquete. Importa la misma configuración en ambos y repite el mismo recorrido de navegación y scroll. Reinicia la medición antes de cada recorrido.",
+      "No actives otra copia de TubeMod al mismo tiempo. Si comparas versiones, importa la misma configuración y repite el mismo recorrido de navegación y scroll. Reinicia la medición antes de cada recorrido.",
       "JS: ejecución síncrona de los métodos instrumentados, sin sumar llamadas anidadas. Excluye esperas, pintura, layout y filtrado CSS nativo. Un tiempo bajo de JS no demuestra que el coste total del navegador sea cero.",
       "Ocupación: JS medido dividido por el tiempo del intervalo. No es un porcentaje de CPU del proceso ni de toda la extensión.",
       "Heap: API orientativa de Chromium, posiblemente compartida con otros contextos. No mide RAM de TubeMod. Si Firefox u otro navegador no lo expone, aparece N/D.",

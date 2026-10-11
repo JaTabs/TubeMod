@@ -2,7 +2,7 @@
 
 ## Cambios de esta versión
 
-Este fork conserva las opciones del proyecto original de [Pedro-Gregorio/TubeMod](https://github.com/Pedro-Gregorio/TubeMod), optimiza el filtrado y corrige la importación y exportación de configuraciones:
+Este fork mantiene el motor de filtrado original de [Pedro-Gregorio/TubeMod](https://github.com/Pedro-Gregorio/TubeMod), añade el diagnóstico F3 y corrige la importación y exportación de configuraciones:
 
 - La importación se abre en una pestaña propia, para no depender del popup que puede cerrarse al abrir el selector de archivos.
 - Valida el JSON, conserva las preferencias de archivos antiguos y confirma el guardado antes de recargar YouTube.
@@ -11,15 +11,11 @@ Este fork conserva las opciones del proyecto original de [Pedro-Gregorio/TubeMod
 
 Los cambios se comparten entre Brave, Chromium y Firefox. Las versiones de las tiendas enlazadas abajo pertenecen al proyecto original; para usar este fork, carga esta copia como extensión de desarrollo.
 
-### Filtrado
+### Motor de filtrado
 
-- 70 de las 100 opciones aplican sus estilos mediante CSS. El navegador filtra los elementos nuevos y los cambios de atributos sin volver a recorrer toda la página desde JavaScript.
-- Las opciones desactivadas no ejecutan búsquedas XPath. Desactivarlas retira sus reglas sin anular otros filtros que afecten al mismo elemento.
-- Las reglas de texto, posición e iconos que conservan XPath procesan las ramas modificadas cuando es posible. Las posiciones globales siguen consultando el documento, pero solo ante cambios en sus secciones relevantes.
-- El observador solo se conecta si hay una opción activa que necesita JavaScript. Agrupa los cambios durante 50 ms sin reiniciar el plazo con cada mutación y vacía las referencias a nodos después de procesarlos.
-- La navegación interna de YouTube actualiza el ámbito de las reglas. Si el navegador no admite un selector CSS, esa opción conserva el filtrado XPath.
+Las optimizaciones se han revertido. `scripts/content.js` vuelve a la copia anterior a la optimización (`f9555c4`): filtros XPath, estilos inline y el observador original con debounce de 100 ms. Conserva las reparaciones de importación/exportación del fork. No hay un motor alternativo optimizado.
 
-Ocultar contenido no impide que YouTube lo descargue ni garantiza que libere su memoria. Estas optimizaciones reducen el trabajo de la extensión; no son una medición del ahorro de RAM de la pestaña.
+El diagnóstico está en un script separado y solo instrumenta el motor mientras está activado. Ocultar contenido no impide que YouTube lo descargue ni garantiza que libere su memoria.
 
 ## Diagnóstico de rendimiento
 
@@ -39,24 +35,19 @@ Para observar CPU y memoria de procesos, usa además el gestor de tareas del nav
 
 Los registros permanecen en la pestaña: máximo 120 muestras, 100 registros y 300 tiempos. No hay telemetría ni envío a servidores. Los JSON exportados no incluyen URL de la página, títulos ni búsquedas.
 
-## Paquetes original y optimizado
+## Paquetes para Chromium y Firefox
 
-El clon cargado directamente utiliza el motor optimizado. Para generar paquetes independientes para ambos navegadores, con Python 3 y su biblioteca estándar:
+El clon y los paquetes utilizan el mismo motor original, con F3 y las reparaciones de importación/exportación. Para generarlos, con Python 3 y su biblioteca estándar:
 
 ```bash
 python3 -I tools/package.py
 ```
 
-Se crea una carpeta nueva en `dist/<fecha-hora>/`, con cuatro carpetas cargables y cuatro ZIP:
+Se crea una carpeta nueva en `dist/<fecha-hora>/`, con dos carpetas cargables y sus ZIP: `tubemod-chromium-original` y `tubemod-firefox-original`. Ya no se generan variantes optimizadas.
 
-- `tubemod-chromium-original` y `tubemod-chromium-optimized`.
-- `tubemod-firefox-original` y `tubemod-firefox-optimized`.
+En Chromium/Brave carga la carpeta correspondiente con **Load unpacked**; el ZIP sirve para transportarla, no como instalación firmada. En Firefox carga el `manifest.json` de la carpeta correspondiente como complemento temporal. El paquete de Firefox no está firmado y el complemento temporal desaparece al cerrar el navegador.
 
-En Chromium/Brave carga la carpeta correspondiente con **Load unpacked**; el ZIP sirve para transportarla, no como instalación firmada. En Firefox carga el `manifest.json` de la carpeta correspondiente como complemento temporal. Los paquetes de Firefox no están firmados y el complemento temporal desaparece al cerrar el navegador.
-
-El motor original está congelado en `variants/original/content.js`, procedente de `f9555c4`: anterior a la optimización, con las reparaciones de importación/exportación del fork. Ambos paquetes comparten el mismo panel de diagnóstico y los mismos controles. La compilación original no sustituye `master`: su fuente y el empaquetador también se mantienen en esa rama.
-
-**Activa solo un paquete cada vez.** Las preferencias de las dos instalaciones son independientes: exporta la configuración de una e impórtala en la otra. Para comparar, usa el mismo navegador, pestaña, configuración y recorrido; recarga YouTube tras cambiar de paquete, reinicia la medición y repite varias veces. No concluyas que el coste total de CSS es cero porque el motor optimizado haga pocas consultas o use poco JS.
+**Activa solo una copia de TubeMod.** Si cargabas una carpeta optimizada de un empaquetado anterior, cambiar el repo no la actualiza: desactívala y carga la carpeta nueva, o carga directamente la raíz del clon en Chromium. Recarga la extensión y todas las pestañas de YouTube para retirar los scripts antiguos. Exporta tus preferencias antes de cambiar de instalación e impórtalas después.
 
 ## What is it?
 
@@ -143,7 +134,7 @@ node --test tests/*.test.cjs
 
 Las pruebas de configuraciones ejecutan los scripts reales con almacenamiento y eventos del navegador simulados. Cubren el ciclo exportar/importar, configuraciones antiguas, archivos inválidos y errores de lectura o guardado.
 
-Se añade una única prueba de integración: `tests/filtering.test.cjs`. Ejecuta ambos motores y el diagnóstico en Chromium y Firefox headless, con perfiles temporales y DOM real servido en localhost. Comprueba el filtrado, la restauración, el procesamiento pendiente al cambiar una opción y la activación, medición y desactivación del panel. No instala dependencias ni usa tu perfil personal. Si un navegador no está instalado, se indica que no se ha ejecutado; si no hay ninguno, la prueba se marca como omitida. Para elegir los navegadores que se ejecutan:
+Se conserva una única prueba de integración del filtrado y el diagnóstico: `tests/filtering.test.cjs`. Ejecuta el motor original con el menú F3 en Chromium y Firefox headless, con perfiles temporales y DOM real servido en localhost. Comprueba el filtrado, la restauración, el procesamiento pendiente al cambiar una opción y la activación, medición y desactivación del panel. No instala dependencias ni usa tu perfil personal. Si un navegador no está instalado, se indica que no se ha ejecutado; si no hay ninguno, la prueba se marca como omitida. Para elegir los navegadores que se ejecutan:
 
 ```bash
 TUBEMOD_BROWSERS=chromium node --test tests/filtering.test.cjs

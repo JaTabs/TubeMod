@@ -51,8 +51,7 @@ async function smoke() {
 }
 
 async function runBrowser(browser, variant, diagnostics) {
-  const content = readFileSync(join(root, variant === "original"
-    ? "variants/original/content.js" : "scripts/content.js"), "utf8");
+  const content = readFileSync(join(root, "scripts/content.js"), "utf8");
   const profile = mkdtempSync(join(tmpdir(), `tubemod-${browser}-`));
   let child;
   let timeout;
@@ -114,7 +113,7 @@ async function runBrowser(browser, variant, diagnostics) {
   }
 }
 
-test("filtrado y diagnóstico de ambos motores en navegadores reales", { timeout: 120000 }, async (t) => {
+test("filtrado original y diagnóstico en navegadores reales", { timeout: 120000 }, async (t) => {
   const diagnostics = existsSync(diagnosticsPath) ? readFileSync(diagnosticsPath, "utf8") : "";
   const browsers = process.env.TUBEMOD_BROWSERS?.split(",") || ["chromium", "firefox"];
   let runs = 0;
@@ -123,10 +122,8 @@ test("filtrado y diagnóstico de ambos motores en navegadores reales", { timeout
       t.diagnostic(`${browser} no está instalado; no se ejecuta`);
       continue;
     }
-    for (const variant of ["original", "optimized"]) {
-      await runBrowser(browser, variant, diagnostics);
-      runs++;
-    }
+    await runBrowser(browser, "original", diagnostics);
+    runs++;
   }
   if (!runs) t.skip("No hay un navegador compatible instalado");
 });
